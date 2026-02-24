@@ -132,6 +132,9 @@
     
     <button class="add-btn" onclick="showAddModal()">+</button>
     <button class="refresh-btn" onclick="refreshFunds()">🔄 刷新</button>
+    <div style="position:fixed;bottom:30px;left:80px;font-size:12px;color:#666;">
+        <label><input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()"> 自动刷新</label>
+    </div>
     
     <div id="addModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;">
         <div style="background:#fff;margin:20% 20px;padding:20px;border-radius:12px;">
@@ -148,9 +151,45 @@
     <script>
         const STORAGE_KEY = 'jzbao_funds';
         let funds = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        let autoRefreshInterval = null;
         
         function saveFunds() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(funds));
+        }
+        
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            if (checkbox.checked) {
+                localStorage.setItem('autoRefresh', 'true');
+                startAutoRefresh();
+                showStatus('已开启自动刷新（每30秒）', false);
+            } else {
+                localStorage.setItem('autoRefresh', 'false');
+                stopAutoRefresh();
+                showStatus('已关闭自动刷新', false);
+            }
+        }
+        
+        function startAutoRefresh() {
+            if (autoRefreshInterval) return;
+            autoRefreshInterval = setInterval(() => {
+                refreshFunds();
+            }, 30000);
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+        
+        function initAutoRefresh() {
+            const autoRefresh = localStorage.getItem('autoRefresh') === 'true';
+            document.getElementById('autoRefresh').checked = autoRefresh;
+            if (autoRefresh) {
+                startAutoRefresh();
+            }
         }
         
         function getFundValue(code) {
@@ -320,6 +359,7 @@
             addFund();
         });
         
+        initAutoRefresh();
         refreshFunds();
     </script>
 </body>
