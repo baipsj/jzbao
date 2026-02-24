@@ -199,16 +199,10 @@
             }
             lastRefreshTime = now;
             
-            const listEl = document.getElementById('fundList');
-            
             if (funds.length === 0) {
-                listEl.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><div>暂无自选基金</div></div>';
-                document.getElementById('updateTime').textContent = '--:--';
+                renderFunds();
                 return;
             }
-            
-            listEl.innerHTML = '<div class="loading">加载中...</div>';
-            showStatus('正在刷新...', false);
             
             try {
                 const results = await Promise.allSettled(funds.map(f => getFundValue(f.code)));
@@ -225,7 +219,6 @@
                 saveFunds();
             } catch (e) {
                 console.error('刷新失败:', e);
-                showStatus('刷新失败，请检查网络', true);
             }
             
             renderFunds();
@@ -288,18 +281,14 @@
         }
         
         async function addFund() {
-            const code = document.getElementById('fundCode').value.trim();
-            if (!code) {
-                showStatus('请输入基金代码', true);
-                return;
-            }
+            const codeInput = document.getElementById('fundCode');
+            const code = codeInput.value.trim() || '161039';
             
-            const btn = document.querySelector('#addModal button:last-child');
+            const btn = document.getElementById('addBtn');
             btn.textContent = '添加中...';
             btn.disabled = true;
             
             try {
-                showStatus('正在获取基金数据...', false);
                 const data = await getFundValue(code);
                 
                 if (!data || !data.fundcode) {
@@ -307,7 +296,7 @@
                 }
                 
                 if (funds.some(f => f.code === data.fundcode)) {
-                    showStatus('基金已存在', true);
+                    alert('基金已存在');
                     return;
                 }
                 
@@ -320,10 +309,8 @@
                 saveFunds();
                 hideAddModal();
                 renderFunds();
-                showStatus('添加成功！', false);
             } catch (e) {
-                console.error('添加失败:', e);
-                showStatus('添加失败: ' + (e.message || '请检查网络'), true);
+                alert('添加失败: ' + (e.message || '请检查网络'));
             } finally {
                 btn.textContent = '添加';
                 btn.disabled = false;
