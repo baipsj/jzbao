@@ -1,0 +1,51 @@
+<view class="container">
+  <view class="search-box">
+    <input 
+      class="search-input" 
+      placeholder="搜索基金代码或名称" 
+      bindinput="onSearchInput"
+      bindconfirm="onSearch"
+      confirm-type="search"
+    />
+    <view class="search-btn" bindtap="onSearch">搜索</view>
+  </view>
+
+  <view wx:if="{{searchResults.length > 0}}" class="results">
+    <view 
+      wx:for="{{searchResults}}" 
+      wx:key="code" 
+      class="result-item"
+      bindtap="addFund"
+      data-code="{{item.code}}"
+      data-name="{{item.name}}"
+    >
+      <view class="fund-info">
+        <text class="fund-name">{{item.name}}</text>
+        <text class="fund-code">{{item.code}}</text>
+      </view>
+      <view class="add-icon">+</view>
+    </view>
+  </view>
+
+  <view wx:elif="{{searched && searchResults.length === 0}}" class="no-result">
+    <text>未找到相关基金</text>
+  </view>
+
+  <view wx:else class="hot-funds">
+    <text class="section-title">热门基金</text>
+    <view 
+      wx:for="{{hotFunds}}" 
+      wx:key="code" 
+      class="result-item"
+      bindtap="addFund"
+      data-code="{{item.code}}"
+      data-name="{{item.name}}"
+    >
+      <view class="fund-info">
+        <text class="fund-name">{{item.name}}</text>
+        <text class="fund-code">{{item.code}}</text>
+      </view>
+      <view class="add-icon">+</view>
+    </view>
+  </view>
+</view>

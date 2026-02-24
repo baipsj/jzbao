@@ -1,0 +1,39 @@
+<view class="container">
+  <view class="header">
+    <view class="fund-title">
+      <text class="name">{{fundInfo.name}}</text>
+      <text class="code">{{fundInfo.code}}</text>
+    </view>
+  </view>
+
+  <view class="value-card">
+    <view class="label">实时估值</view>
+    <view class="value {{fundInfo.estimateChange >= 0 ? 'up' : 'down'}}">
+      {{fundInfo.estimateValue || '--'}}
+    </view>
+    <view class="change {{fundInfo.estimateChange >= 0 ? 'up' : 'down'}}">
+      {{fundInfo.estimateChange >= 0 ? '+' : ''}}{{fundInfo.estimateChange || '--'}}%
+    </view>
+    <view class="time">估值时间: {{fundInfo.estimateTime || '--'}}</view>
+  </view>
+
+  <view class="info-card">
+    <view class="info-row">
+      <text class="label">单位净值</text>
+      <text class="value-text">{{fundInfo.netValue || '--'}}</text>
+    </view>
+    <view class="info-row">
+      <text class="label">净值日期</text>
+      <text class="value-text">{{fundInfo.netDate || '--'}}</text>
+    </view>
+  </view>
+
+  <view class="action-btn">
+    <button 
+      class="{{isFavorite ? 'remove-btn' : 'add-btn'}}" 
+      bindtap="toggleFavorite"
+    >
+      {{isFavorite ? '取消自选' : '添加自选'}}
+    </button>
+  </view>
+</view>

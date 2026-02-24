@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1890ff">
+    <title>净值宝 - 基金估值</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1890ff, #096dd9);
+            color: #fff;
+            padding: 30px 20px;
+            padding-top: 50px;
+        }
+        .header h1 { font-size: 24px; margin-bottom: 5px; }
+        .header .update-time { font-size: 12px; opacity: 0.8; }
+        
+        .fund-list { padding: 15px; }
+        .fund-item {
+            background: #fff;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .fund-info { flex: 1; }
+        .fund-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .fund-code { font-size: 12px; color: #999; }
+        
+        .fund-value { text-align: right; }
+        .estimate-value { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .estimate-change { font-size: 14px; }
+        .up { color: #ff4d4f; }
+        .down { color: #52c41a; }
+        
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-icon { font-size: 60px; margin-bottom: 15px; }
+        
+        .add-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #1890ff;
+            color: #fff;
+            font-size: 28px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(24,144,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 20px;
+            padding: 12px 20px;
+            background: #fff;
+            color: #1890ff;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+        
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .add-btn, .refresh-btn { bottom: calc(30px + env(safe-area-inset-bottom)); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>我的自选</h1>
+        <div class="update-time">更新时间: <span id="updateTime">--:--</span></div>
+    </div>
+    
+    <div class="fund-list" id="fundList">
+        <div class="loading">加载中...</div>
+    </div>
+    
+    <button class="add-btn" onclick="showAddModal()">+</button>
+    <button class="refresh-btn" onclick="refreshFunds()">🔄 刷新</button>
+    
+    <div id="addModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;">
+        <div style="background:#fff;margin:20% 20px;padding:20px;border-radius:12px;">
+            <h3 style="margin-bottom:15px;">添加基金</h3>
+            <input id="fundCode" type="text" placeholder="输入基金代码" 
+                   style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;margin-bottom:15px;">
+            <div style="display:flex;gap:10px;">
+                <button onclick="hideAddModal()" style="flex:1;padding:12px;border:1px solid #ddd;background:#fff;border-radius:8px;">取消</button>
+                <button onclick="addFund()" style="flex:1;padding:12px;border:none;background:#1890ff;color:#fff;border-radius:8px;">添加</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const STORAGE_KEY = 'jzbao_funds';
+        let funds = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        
+        function saveFunds() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(funds));
+        }
+        
+        function getFundValue(code) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = `https://fundgz.1234567.com.cn/js/${code}.js?callback=cb${Date.now()}`;
+                window[`cb${Date.now()}`] = (data) => {
+                    resolve(data);
+                };
+                script.onerror = () => reject(new Error('获取失败'));
+                document.head.appendChild(script);
+                setTimeout(() => script.remove(), 5000);
+            });
+        }
+        
+        async function refreshFunds() {
+            if (funds.length === 0) {
+                renderFunds();
+                return;
+            }
+            
+            const listEl = document.getElementById('fundList');
+            listEl.innerHTML = '<div class="loading">加载中...</div>';
+            
+            const results = await Promise.allSettled(funds.map(f => getFundValue(f.code)));
+            
+            funds = funds.map((f, i) => {
+                const result = results[i];
+                if (result.status === 'fulfilled') {
+                    const data = result.value;
+                    return { ...f, gsz: data.gsz, gszzl: data.gztime };
+                }
+                return f;
+            });
+            
+            document.getElementById('updateTime').textContent = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+            saveFunds();
+            renderFunds();
+        }
+        
+        function renderFunds() {
+            const listEl = document.getElementById('fundList');
+            if (funds.length === 0) {
+                listEl.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><div>暂无自选基金</div></div>';
+                return;
+            }
+            
+            listEl.innerHTML = funds.map(f => `
+                <div class="fund-item">
+                    <div class="fund-info">
+                        <div class="fund-name">${f.name}</div>
+                        <div class="fund-code">${f.code}</div>
+                    </div>
+                    <div class="fund-value">
+                        <div class="estimate-value">${f.gsz || '--'}</div>
+                        <div class="estimate-change ${(f.gszzl || '').startsWith('-') ? 'down' : 'up'}">${f.gszzl || '--'}%</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showAddModal() { document.getElementById('addModal').style.display = 'block'; }
+        function hideAddModal() { document.getElementById('addModal').style.display = 'none'; }
+        
+        async function addFund() {
+            const code = document.getElementById('fundCode').value.trim();
+            if (!code) return;
+            
+            try {
+                const data = await getFundValue(code);
+                if (funds.some(f => f.code === data.fundcode)) {
+                    alert('基金已存在');
+                    return;
+                }
+                funds.push({ code: data.fundcode, name: data.name, gsz: data.gsz, gszzl: data.gszzl });
+                saveFunds();
+                hideAddModal();
+                document.getElementById('fundCode').value = '';
+                renderFunds();
+            } catch (e) {
+                alert('添加失败，请检查基金代码');
+            }
+        }
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+        
+        refreshFunds();
+    </script>
+</body>
+</html>

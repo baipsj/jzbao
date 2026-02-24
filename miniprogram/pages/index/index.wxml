@@ -1,0 +1,43 @@
+<view class="container">
+  <view class="header flex-between">
+    <view>
+      <text class="title">我的自选</text>
+      <text class="last-update">更新时间: {{lastUpdateTime}}</text>
+    </view>
+    <view class="nav-icons">
+      <text class="nav-icon" bindtap="goToSearch">+</text>
+      <text class="nav-icon" bindtap="goToMine">我的</text>
+    </view>
+  </view>
+
+  <view wx:if="{{funds.length === 0}}" class="empty">
+    <view class="empty-icon">📊</view>
+    <text class="empty-text">暂无自选基金</text>
+    <button class="add-btn" bindtap="goToSearch">添加基金</button>
+  </view>
+
+  <view wx:else class="fund-list">
+    <view 
+      wx:for="{{funds}}" 
+      wx:key="code" 
+      class="fund-item"
+      bindtap="goToDetail"
+      data-code="{{item.code}}"
+    >
+      <view class="fund-info">
+        <text class="fund-name">{{item.name}}</text>
+        <text class="fund-code">{{item.code}}</text>
+      </view>
+      <view class="fund-value">
+        <text class="estimate-value">{{item.estimateValue || '--'}}</text>
+        <text class="estimate-change {{item.estimateChange >= 0 ? 'up' : 'down'}}">
+          {{item.estimateChange >= 0 ? '+' : ''}}{{item.estimateChange || '--'}}%
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <view class="refresh-tip" wx:if="{{funds.length > 0}}">
+    <text>下拉刷新获取最新估值</text>
+  </view>
+</view>

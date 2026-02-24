@@ -1,0 +1,81 @@
+.search-box {
+  display: flex;
+  padding: 20rpx;
+  background: #fff;
+}
+
+.search-input {
+  flex: 1;
+  height: 72rpx;
+  background: #f5f5f5;
+  border-radius: 36rpx;
+  padding: 0 30rpx;
+  font-size: 28rpx;
+}
+
+.search-btn {
+  width: 120rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 36rpx;
+  margin-left: 20rpx;
+  font-size: 28rpx;
+}
+
+.results, .hot-funds {
+  padding: 20rpx;
+}
+
+.section-title {
+  display: block;
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 20rpx;
+}
+
+.result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.fund-info {
+  flex: 1;
+}
+
+.fund-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+
+.fund-code {
+  color: #999;
+  font-size: 24rpx;
+}
+
+.add-icon {
+  width: 60rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  text-align: center;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.no-result {
+  text-align: center;
+  padding: 100rpx;
+  color: #999;
+}
