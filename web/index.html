@@ -89,6 +89,12 @@
             color: #999;
         }
         
+        .error-msg {
+            text-align: center;
+            padding: 20px;
+            color: #ff4d4f;
+        }
+        
         @supports (padding-bottom: env(safe-area-inset-bottom)) {
             .add-btn, .refresh-btn { bottom: calc(30px + env(safe-area-inset-bottom)); }
         }
@@ -129,44 +135,66 @@
         
         function getFundValue(code) {
             return new Promise((resolve, reject) => {
+                const callbackName = 'fundCB_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
                 const script = document.createElement('script');
-                script.src = `https://fundgz.1234567.com.cn/js/${code}.js?callback=cb${Date.now()}`;
-                window[`cb${Date.now()}`] = (data) => {
+                script.src = `https://fundgz.1234567.com.cn/js/${code}.js?cb=${callbackName}`;
+                
+                window[callbackName] = (data) => {
                     resolve(data);
+                    delete window[callbackName];
                 };
-                script.onerror = () => reject(new Error('获取失败'));
+                
+                script.onerror = () => {
+                    reject(new Error('网络错误'));
+                    delete window[callbackName];
+                };
+                
                 document.head.appendChild(script);
-                setTimeout(() => script.remove(), 5000);
+                
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        reject(new Error('请求超时'));
+                    }
+                }, 8000);
             });
         }
         
         async function refreshFunds() {
+            const listEl = document.getElementById('fundList');
+            
             if (funds.length === 0) {
-                renderFunds();
+                listEl.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><div>暂无自选基金</div></div>';
+                document.getElementById('updateTime').textContent = '--:--';
                 return;
             }
             
-            const listEl = document.getElementById('fundList');
             listEl.innerHTML = '<div class="loading">加载中...</div>';
             
-            const results = await Promise.allSettled(funds.map(f => getFundValue(f.code)));
+            try {
+                const results = await Promise.allSettled(funds.map(f => getFundValue(f.code)));
+                
+                funds = funds.map((f, i) => {
+                    const result = results[i];
+                    if (result.status === 'fulfilled' && result.value) {
+                        return { ...f, gsz: result.value.gsz, gszzl: result.value.gszzl };
+                    }
+                    return f;
+                });
+                
+                document.getElementById('updateTime').textContent = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+                saveFunds();
+            } catch (e) {
+                console.error('刷新失败:', e);
+            }
             
-            funds = funds.map((f, i) => {
-                const result = results[i];
-                if (result.status === 'fulfilled') {
-                    const data = result.value;
-                    return { ...f, gsz: data.gsz, gszzl: data.gztime };
-                }
-                return f;
-            });
-            
-            document.getElementById('updateTime').textContent = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
-            saveFunds();
             renderFunds();
         }
         
         function renderFunds() {
             const listEl = document.getElementById('fundList');
+            
             if (funds.length === 0) {
                 listEl.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><div>暂无自选基金</div></div>';
                 return;
@@ -180,32 +208,56 @@
                     </div>
                     <div class="fund-value">
                         <div class="estimate-value">${f.gsz || '--'}</div>
-                        <div class="estimate-change ${(f.gszzl || '').startsWith('-') ? 'down' : 'up'}">${f.gszzl || '--'}%</div>
+                        <div class="estimate-change ${f.gszzl && f.gszzl.toString().startsWith('-') ? 'down' : 'up'}">${f.gszzl || '--'}%</div>
                     </div>
                 </div>
             `).join('');
         }
         
         function showAddModal() { document.getElementById('addModal').style.display = 'block'; }
-        function hideAddModal() { document.getElementById('addModal').style.display = 'none'; }
+        function hideAddModal() { 
+            document.getElementById('addModal').style.display = 'none';
+            document.getElementById('fundCode').value = '';
+        }
         
         async function addFund() {
             const code = document.getElementById('fundCode').value.trim();
-            if (!code) return;
+            if (!code) {
+                alert('请输入基金代码');
+                return;
+            }
+            
+            const btn = document.querySelector('#addModal button:last-child');
+            btn.textContent = '添加中...';
+            btn.disabled = true;
             
             try {
                 const data = await getFundValue(code);
+                
+                if (!data || !data.fundcode) {
+                    throw new Error('基金不存在');
+                }
+                
                 if (funds.some(f => f.code === data.fundcode)) {
                     alert('基金已存在');
                     return;
                 }
-                funds.push({ code: data.fundcode, name: data.name, gsz: data.gsz, gszzl: data.gszzl });
+                
+                funds.push({ 
+                    code: data.fundcode, 
+                    name: data.name, 
+                    gsz: data.gsz, 
+                    gszzl: data.gszzl 
+                });
                 saveFunds();
                 hideAddModal();
-                document.getElementById('fundCode').value = '';
                 renderFunds();
             } catch (e) {
-                alert('添加失败，请检查基金代码');
+                console.error(e);
+                alert('添加失败: ' + (e.message || '请检查基金代码是否正确'));
+            } finally {
+                btn.textContent = '添加';
+                btn.disabled = false;
             }
         }
         
