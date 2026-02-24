@@ -110,6 +110,8 @@
         <div class="loading">加载中...</div>
     </div>
     
+    <div id="statusMsg" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:#fff;padding:20px;border-radius:10px;z-index:200;text-align:center;max-width:80%;"></div>
+    
     <button class="add-btn" onclick="showAddModal()">+</button>
     <button class="refresh-btn" onclick="refreshFunds()">🔄 刷新</button>
     
@@ -166,6 +168,7 @@
             }
             
             listEl.innerHTML = '<div class="loading">加载中...</div>';
+            showStatus('正在刷新...', false);
             
             try {
                 const results = await Promise.allSettled(funds.map(f => getFundValue(f.code)));
@@ -180,8 +183,10 @@
                 
                 document.getElementById('updateTime').textContent = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
                 saveFunds();
+                showStatus('刷新成功', false);
             } catch (e) {
                 console.error('刷新失败:', e);
+                showStatus('刷新失败，请检查网络', true);
             }
             
             renderFunds();
@@ -209,7 +214,18 @@
             `).join('');
         }
         
-        function showAddModal() { document.getElementById('addModal').style.display = 'block'; }
+        function showAddModal() { 
+            document.getElementById('addModal').style.display = 'block';
+            document.getElementById('statusMsg').style.display = 'none';
+        }
+        
+        function showStatus(msg, isError = false) {
+            const el = document.getElementById('statusMsg');
+            el.textContent = msg;
+            el.style.background = isError ? 'rgba(255,77,79,0.9)' : 'rgba(24,144,255,0.9)';
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 3000);
+        }
         function hideAddModal() { 
             document.getElementById('addModal').style.display = 'none';
             document.getElementById('fundCode').value = '';
@@ -218,7 +234,7 @@
         async function addFund() {
             const code = document.getElementById('fundCode').value.trim();
             if (!code) {
-                alert('请输入基金代码');
+                showStatus('请输入基金代码', true);
                 return;
             }
             
@@ -227,16 +243,15 @@
             btn.disabled = true;
             
             try {
-                console.log('正在获取基金:', code);
+                showStatus('正在获取基金数据...', false);
                 const data = await getFundValue(code);
-                console.log('获取成功:', data);
                 
                 if (!data || !data.fundcode) {
                     throw new Error('基金不存在');
                 }
                 
                 if (funds.some(f => f.code === data.fundcode)) {
-                    alert('基金已存在');
+                    showStatus('基金已存在', true);
                     return;
                 }
                 
@@ -249,10 +264,10 @@
                 saveFunds();
                 hideAddModal();
                 renderFunds();
-                alert('添加成功！');
+                showStatus('添加成功！', false);
             } catch (e) {
                 console.error('添加失败:', e);
-                alert('添加失败: ' + (e.message || '请检查基金代码是否正确或网络是否稳定'));
+                showStatus('添加失败: ' + (e.message || '请检查网络'), true);
             } finally {
                 btn.textContent = '添加';
                 btn.disabled = false;
