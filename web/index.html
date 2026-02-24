@@ -122,7 +122,7 @@
                    style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;margin-bottom:15px;">
             <div style="display:flex;gap:10px;">
                 <button onclick="hideAddModal()" style="flex:1;padding:12px;border:1px solid #ddd;background:#fff;border-radius:8px;">取消</button>
-                <button onclick="addFund()" style="flex:1;padding:12px;border:none;background:#1890ff;color:#fff;border-radius:8px;">添加</button>
+                <button onclick="testClick()" style="flex:1;padding:12px;border:none;background:#1890ff;color:#fff;border-radius:8px;">添加</button>
             </div>
         </div>
     </div>
@@ -224,7 +224,13 @@
             el.textContent = msg;
             el.style.background = isError ? 'rgba(255,77,79,0.9)' : 'rgba(24,144,255,0.9)';
             el.style.display = 'block';
-            setTimeout(() => { el.style.display = 'none'; }, 3000);
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+        
+        function testClick() {
+            const code = document.getElementById('fundCode').value.trim() || '161039';
+            showStatus('测试点击，基金代码: ' + code, false);
+            addFund();
         }
         function hideAddModal() { 
             document.getElementById('addModal').style.display = 'none';
