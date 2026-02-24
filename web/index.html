@@ -35,6 +35,24 @@
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            right: -10px;
+            top: -10px;
+            width: 24px;
+            height: 24px;
+            background: #ff4d4f;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            z-index: 10;
         }
         .fund-info { flex: 1; }
         .fund-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
@@ -200,8 +218,9 @@
                 return;
             }
             
-            listEl.innerHTML = funds.map(f => `
+            listEl.innerHTML = funds.map((f, index) => `
                 <div class="fund-item">
+                    <button class="delete-btn" onclick="deleteFund(${index})">×</button>
                     <div class="fund-info">
                         <div class="fund-name">${f.name}</div>
                         <div class="fund-code">${f.code}</div>
@@ -212,6 +231,16 @@
                     </div>
                 </div>
             `).join('');
+        }
+        
+        function deleteFund(index) {
+            const fund = funds[index];
+            if (confirm('确定删除 ' + fund.name + ' 吗？')) {
+                funds.splice(index, 1);
+                saveFunds();
+                renderFunds();
+                showStatus('已删除', false);
+            }
         }
         
         function showAddModal() { 
