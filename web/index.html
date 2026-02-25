@@ -171,23 +171,32 @@
         
         function getFundValue(code) {
             return new Promise((resolve, reject) => {
-                const callbackName = 'jsonpgz';
-                
-                const script = document.createElement('script');
-                script.src = `https://fundgz.1234567.com.cn/js/${code}.js`;
+                const callbackName = 'jsonpgz_' + code;
                 
                 window[callbackName] = (data) => {
-                    resolve(data);
+                    if (data && data.gsz) {
+                        resolve(data);
+                    } else {
+                        reject(new Error('无数据'));
+                    }
+                    setTimeout(() => { delete window[callbackName]; }, 1000);
                 };
                 
+                const script = document.createElement('script');
+                script.src = `https://fundgz.1234567.com.cn/js/${code}.js?cb=${callbackName}`;
+                
                 script.onerror = () => {
+                    delete window[callbackName];
                     reject(new Error('网络错误'));
                 };
                 
                 document.head.appendChild(script);
                 
                 setTimeout(() => {
-                    reject(new Error('请求超时'));
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        reject(new Error('请求超时'));
+                    }
                 }, 8000);
             });
         }
@@ -205,23 +214,23 @@
             }
             
             try {
-                const results = await Promise.allSettled(funds.map(f => getFundValue(f.code)));
+                const promises = funds.map(f => getFundValue(f.code));
+                const results = await Promise.all(promises);
                 
                 funds = funds.map((f, i) => {
-                    const result = results[i];
-                    if (result.status === 'fulfilled' && result.value) {
-                        return { ...f, gsz: result.value.gsz, gszzl: result.value.gszzl };
+                    const data = results[i];
+                    if (data && data.gsz) {
+                        return { ...f, gsz: data.gsz, gszzl: data.gszzl };
                     }
                     return f;
                 });
                 
                 document.getElementById('updateTime').textContent = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
                 saveFunds();
+                renderFunds();
             } catch (e) {
                 console.error('刷新失败:', e);
             }
-            
-            renderFunds();
         }
         
         function renderFunds() {
